@@ -68,6 +68,37 @@ if Config and PlayerUtils and AutoFarmSystem and GUI then
                 ))
             end
         end
+        
+        -- เพิ่มฟังก์ชันโจมตีที่ใช้งานได้จริง
+        function AutoFarmSystem:AttackTarget(target)
+            local character = game.Players.LocalPlayer.Character
+            if not character then return end
+            
+            local humanoid = character:FindFirstChild("Humanoid")
+            if not humanoid then return end
+            
+            -- หมุนหน้าไปทางศัตรู
+            local targetRoot = target:FindFirstChild("HumanoidRootPart")
+            local characterRoot = character:FindFirstChild("HumanoidRootPart")
+            
+            if targetRoot and characterRoot then
+                characterRoot.CFrame = CFrame.new(
+                    characterRoot.Position,
+                    Vector3.new(targetRoot.Position.X, characterRoot.Position.Y, targetRoot.Position.Z)
+                )
+            end
+            
+            -- โจมตี (ใช้ RemoteEvent ถ้ามี)
+            local backpack = game.Players.LocalPlayer:WaitForChild("Backpack")
+            for _, tool in pairs(backpack:GetChildren()) do
+                if tool:IsA("Tool") then
+                    humanoid:EquipTool(tool)
+                    wait(0.1)
+                    tool:Activate()
+                    break
+                end
+            end
+        end
     end
     
     -- แก้ไข GUI ให้ทำงานกับ AutoFarmSystem
@@ -78,6 +109,8 @@ if Config and PlayerUtils and AutoFarmSystem and GUI then
         -- ป้องกัน GUI ถูกทำลาย
         if syn and syn.protect_gui then
             syn.protect_gui(screenGui)
+        elseif protect_gui then
+            protect_gui(screenGui)
         end
         
         -- หาปุ่ม Toggle ใน GUI
@@ -96,7 +129,7 @@ if Config and PlayerUtils and AutoFarmSystem and GUI then
         end
         
         -- รอจน GUI สร้างเสร็จ
-        game:GetService("RunService").Heartbeat:Wait()
+        wait(1)
         
         local toggleButton = FindToggleButton(screenGui)
         if toggleButton then
@@ -130,6 +163,16 @@ if Config and PlayerUtils and AutoFarmSystem and GUI then
     -- สร้าง GUI
     local gui = PatchGUI()
     
+    -- แสดงข้อมูลผู้เล่น
+    if PlayerUtils and PlayerUtils.GetPlayerData then
+        local playerData = PlayerUtils:GetPlayerData()
+        if playerData then
+            print("👤 ผู้เล่น: " .. playerData.Name)
+            print("📈 เลเวล: " .. (playerData.Level or 1))
+            print("💰 Beli: " .. (playerData.Beli or 0))
+        end
+    end
+    
     print("✨ ระบบพร้อมใช้งาน!")
     print("👉 กด RightControl เพื่อแสดง/ซ่อน GUI")
     print("🎯 ปุ่มเริ่มออโต้ฟาร์มอยู่ใน GUI")
@@ -147,55 +190,13 @@ else
     warn("⚠️ ไม่สามารถโหลดโมดูลสำคัญได้ กรุณาตรวจสอบลิงก์ GitHub")
 end
 
-return {
-    Config = Config,
-    PlayerUtils = PlayerUtils,
-    AutoFarmSystem = AutoFarmSystem,
-    GUI = GUI
-}    -- แสดงข้อมูลผู้เล่น
-    local playerData = PlayerUtils:GetPlayerData()
-    print("👤 ผู้เล่น: " .. playerData.Name)
-    print("📈 เลเวล: " .. playerData.Level)
-    print("💰 Beli: " .. playerData.Beli)
-    
-    -- ตั้งค่าปุ่มลัด
-    self:SetupKeybinds()
-    
-    self.IsInitialized = true
-    print("🎉 ระบบพร้อมใช้งาน! กด " .. tostring(Config.UI.Keybind) .. " เพื่อแสดง/ซ่อน GUI")
-    
-    return true
-end
-
--- ตั้งค่าปุ่มลัด
-function Loader:SetupKeybinds()
-    local UIS = game:GetService("UserInputService")
-    local gui = game.Players.LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGUI")
-    
-    if gui then
-        UIS.InputBegan:Connect(function(input, gameProcessed)
-            if not gameProcessed then
-                if input.KeyCode == Config.UI.Keybind then
-                    gui.Enabled = not gui.Enabled
-                end
-            end
-        end)
-    end
-end
-
 -- ฟังก์ชันช่วยเหลือ
-function Loader:Help()
+local function ShowHelp()
     print("=== คำสั่งช่วยเหลือ ===")
     print("AutoFarmSystem:Start() - เริ่มออโต้ฟาร์ม")
     print("AutoFarmSystem:Stop()  - หยุดออโต้ฟาร์ม")
     print("PlayerUtils:GetPlayerData() - ดูข้อมูลผู้เล่น")
-    print("Loader:Initialize() - เริ่มต้นระบบใหม่")
 end
 
--- เริ่มต้นระบบอัตโนมัติเมื่อโหลด
-spawn(function()
-    wait(3) -- รอให้เกมโหลดเสร็จ
-    Loader:Initialize()
-end)
-
-return Loader
+-- เพิ่มคำสั่งใน Console
+ShowHelp()
